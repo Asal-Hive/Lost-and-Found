@@ -34,7 +34,7 @@ export default function SetNewPasswordPage() {
     setLoading(false);
 
     showToast("success", "رمز عبور با موفقیت تغییر کرد.");
-    navigate("/login", { replace: true });
+    setTimeout(() => navigate("/login", { replace: true }), 700);
   };
 
   return (

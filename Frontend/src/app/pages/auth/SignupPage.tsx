@@ -21,11 +21,29 @@ export default function SignupPage() {
       return;
     }
     setLoading(true);
-    // TODO: replace with real API call (POST /api/auth/signup/)
-    await new Promise((r) => setTimeout(r, 650));
-    setLoading(false);
-    showToast("info", "کد تایید به ایمیل شما ارسال شد.");
-    navigate(`/verify-email?email=${encodeURIComponent(email)}`);
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/register/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        // backend may return field errors e.g. { email: [...] }
+        if (data && data.email && Array.isArray(data.email)) {
+          setError(data.email[0]);
+        } else {
+          setError(data.detail || "خطا در ثبت‌نام.");
+        }
+      } else {
+        showToast("info", data.detail || "کد تایید به ایمیل شما ارسال شد.");
+        navigate(`/verify-email?email=${encodeURIComponent(email)}`);
+      }
+    } catch (err) {
+      setError("خطا در ارتباط با سرور.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

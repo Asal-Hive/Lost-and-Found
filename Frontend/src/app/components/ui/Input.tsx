@@ -4,6 +4,8 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   hint?: string;
+  revealable?: boolean;
+  trailing?: React.ReactNode;
 }
 
 export function Input({
@@ -12,9 +14,14 @@ export function Input({
   hint,
   className = '',
   id,
+  revealable = false,
+  trailing,
   ...rest
 }: InputProps) {
   const inputId = id ?? React.useId();
+  const [reveal, setReveal] = React.useState(false);
+  const isPassword = rest.type === 'password';
+  const inputType = isPassword && revealable ? (reveal ? 'text' : 'password') : rest.type;
 
   return (
     <div className="space-y-2">
@@ -24,15 +31,32 @@ export function Input({
         </label>
       )}
 
-      <input
-        id={inputId}
-        className={`w-full rounded-lg border-2 px-4 py-3 text-base outline-none transition-all duration-200 placeholder:text-gray-400 ${
-          error
-            ? 'border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-50'
-            : 'border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-50'
-        } ${className}`}
-        {...rest}
-      />
+      <div className="flex items-center">
+        <input
+          id={inputId}
+          className={`flex-1 rounded-lg border-2 px-4 py-3 text-base outline-none transition-all duration-200 placeholder:text-gray-400 ${
+            error
+              ? 'border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-50'
+              : 'border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-50'
+          } ${className}`}
+          {...rest}
+          type={inputType}
+        />
+        {trailing ? (
+          <div className="ml-2">{trailing}</div>
+        ) : (
+          isPassword && revealable && (
+            <button
+              type="button"
+              onClick={() => setReveal((s) => !s)}
+              className="mr-2 text-sm text-gray-600 hover:text-gray-900"
+              aria-label={reveal ? 'Hide password' : 'Show password'}
+            >
+              {reveal ? 'مخفی' : 'نمایش'}
+            </button>
+          )
+        )}
+      </div>
 
       {error ? (
         <p className="text-sm text-red-600">{error}</p>

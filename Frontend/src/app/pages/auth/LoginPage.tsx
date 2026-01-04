@@ -16,6 +16,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -29,14 +30,27 @@ export default function LoginPage() {
     }
 
     setLoading(true);
-    // TODO: replace with real API call
-    await new Promise((r) => setTimeout(r, 650));
-    setLoading(false);
-
-    login(email);
-    showToast("success", "ورود با موفقیت انجام شد!");
-    const redirectTo = location?.state?.from?.pathname ?? "/";
-    navigate(redirectTo, { replace: true });
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/token/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.detail || "اطلاعات ورود نامعتبر.");
+      } else {
+        // simple local login for now; token storage can be added later
+        login(email);
+        showToast("success", "ورود با موفقیت انجام شد!");
+        const redirectTo = location?.state?.from?.pathname ?? "/";
+        setTimeout(() => navigate(redirectTo, { replace: true }), 700);
+      }
+    } catch (err) {
+      setError("خطا در ارتباط با سرور.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -64,10 +78,20 @@ export default function LoginPage() {
 
           <Input
             label="رمز عبور"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             placeholder="********"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            trailing={
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                className="text-sm text-gray-600 hover:text-gray-900"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? 'مخفی' : 'نمایش'}
+              </button>
+            }
           />
 
           <div className="flex items-center justify-between">

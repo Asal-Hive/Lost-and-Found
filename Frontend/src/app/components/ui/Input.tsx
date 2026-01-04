@@ -49,7 +49,7 @@ export function Input({
             <button
               type="button"
               onClick={() => setReveal((s) => !s)}
-              className="mr-2 text-sm text-gray-600 hover:text-gray-900"
+              className="ml-6 px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 transition-colors"
               aria-label={reveal ? 'Hide password' : 'Show password'}
             >
               {reveal ? 'مخفی' : 'نمایش'}

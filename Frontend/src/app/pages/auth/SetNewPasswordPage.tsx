@@ -10,9 +10,11 @@ export default function SetNewPasswordPage() {
   const { showToast, ToastStack } = useToast();
   const [params] = useSearchParams();
   const email = useMemo(() => params.get("email") ?? "", [params]);
+  const code = useMemo(() => params.get("code") ?? "", [params]);
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPasswords, setShowPasswords] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
@@ -29,12 +31,30 @@ export default function SetNewPasswordPage() {
     }
 
     setLoading(true);
-    // TODO: replace with real API call (POST /api/auth/reset-password/)
-    await new Promise((r) => setTimeout(r, 650));
-    setLoading(false);
-
-    showToast("success", "رمز عبور با موفقیت تغییر کرد.");
-    setTimeout(() => navigate("/login", { replace: true }), 700);
+    try {
+      const payload: any = { email, password, password_confirm: confirm };
+      if (code) payload.code = code;
+      const res = await fetch('/api/reset-password/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      setLoading(false);
+      if (!res.ok) {
+        if (data && data.detail) {
+          setError(data.detail as string);
+        } else {
+          setError('خطا در تغییر رمز.');
+        }
+        return;
+      }
+      showToast('success', data.detail || 'رمز عبور با موفقیت تغییر کرد.');
+      setTimeout(() => navigate('/login', { replace: true }), 700);
+    } catch (err) {
+      setLoading(false);
+      setError('خطا در برقراری ارتباط با سرور.');
+    }
   };
 
   return (
@@ -48,16 +68,26 @@ export default function SetNewPasswordPage() {
         <form className="space-y-6" onSubmit={onSubmit}>
           <Input
             label="رمز جدید"
-            type="password"
+            type={showPasswords ? 'text' : 'password'}
             placeholder="حداقل ۸ کاراکتر"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             error={error}
+            trailing={
+              <button
+                type="button"
+                onClick={() => setShowPasswords((s) => !s)}
+                className="ml-6 px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                aria-label={showPasswords ? 'Hide passwords' : 'Show passwords'}
+              >
+                {showPasswords ? 'مخفی' : 'نمایش'}
+              </button>
+            }
           />
 
           <Input
             label="تکرار رمز جدید"
-            type="password"
+            type={showPasswords ? 'text' : 'password'}
             placeholder="********"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}

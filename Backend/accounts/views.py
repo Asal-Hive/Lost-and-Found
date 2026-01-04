@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.contrib.auth import get_user_model
 from .serializers import RegisterSerializer, VerifyOTPSerializer
+from .serializers import ForgotPasswordSerializer, ResetPasswordSerializer
 from .models import OTPCode
 from .utils import generate_numeric_otp, send_otp_email, default_expiry_minutes
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -213,7 +214,91 @@ class SetPasswordView(APIView):
         # return tokens so frontend can log in immediately
         refresh = RefreshToken.for_user(user)
         return Response({
-            'detail': 'رمز با موفقیت ثبت شد.',
+            'detail': 'ثبت‌ نام با موفقیت انجام شد.',
             'refresh': str(refresh),
             'access': str(refresh.access_token),
         }, status=status.HTTP_200_OK)
+
+
+class ForgotPasswordView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        data = extract_request_data(request)
+        serializer = ForgotPasswordSerializer(data=data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        email = serializer.validated_data['email']
+
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            return Response({'email': ['این ایمیل در سیستم وجود ندارد.']}, status=status.HTTP_400_BAD_REQUEST)
+
+        code = generate_numeric_otp(6)
+        try:
+            print(f"[FORGOT] {user.email} OTP: {code}")
+            sys.stdout.flush()
+        except Exception:
+            pass
+        expires_at = timezone.now() + timedelta(minutes=default_expiry_minutes())
+        OTPCode.objects.create(user=user, code=code, purpose='reset', expires_at=expires_at)
+        send_otp_email(user.email, code, purpose='reset')
+        return Response({'detail': 'کد بازیابی به ایمیل ارسال شد.'}, status=status.HTTP_200_OK)
+
+
+class ResetPasswordView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        data = extract_request_data(request)
+
+        # If client only sent email+code, just validate the OTP (used by OTP entry page)
+        if 'password' not in data:
+            email = data.get('email')
+            code = data.get('code')
+            if not email or not code:
+                return Response({'detail': 'ایمیل و کد الزامی است.'}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                user = User.objects.get(email__iexact=email)
+            except User.DoesNotExist:
+                return Response({'detail': 'کاربر یافت نشد.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            otp_qs = OTPCode.objects.filter(user=user, code=code, purpose='reset', is_used=False).order_by('-created_at')
+            if not otp_qs.exists():
+                return Response({'detail': 'کد نامعتبر است.'}, status=status.HTTP_400_BAD_REQUEST)
+            otp = otp_qs.first()
+            if not otp.is_valid():
+                return Response({'detail': 'کد منقضی شده یا استفاده شده است.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # do not mark used yet; mark when password is set
+            return Response({'detail': 'کد معتبر است.'}, status=status.HTTP_200_OK)
+
+        # otherwise, perform the reset using serializer validation
+        serializer = ResetPasswordSerializer(data=data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data['email']
+        code = serializer.validated_data['code']
+        password = serializer.validated_data['password']
+
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            return Response({'detail': 'کاربر یافت نشد.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        otp_qs = OTPCode.objects.filter(user=user, code=code, purpose='reset', is_used=False).order_by('-created_at')
+        if not otp_qs.exists():
+            return Response({'detail': 'کد نامعتبر است.'}, status=status.HTTP_400_BAD_REQUEST)
+        otp = otp_qs.first()
+        if not otp.is_valid():
+            return Response({'detail': 'کد منقضی شده یا استفاده شده است.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        otp.is_used = True
+        otp.save()
+
+        user.set_password(password)
+        user.save()
+
+        return Response({'detail': 'رمز عبور با موفقیت تغییر کرد.'}, status=status.HTTP_200_OK)

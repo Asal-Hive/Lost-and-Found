@@ -4,10 +4,12 @@ import AuthShell from "./_AuthShell";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { useToast } from "./_useToast";
+import { useAuth } from "../../auth/AuthProvider";
 
 export default function SetPasswordPage() {
   const navigate = useNavigate();
   const { showToast, ToastStack } = useToast();
+  const { login } = useAuth();
   const [params] = useSearchParams();
   const email = useMemo(() => params.get("email") ?? "", [params]);
 
@@ -41,15 +43,14 @@ export default function SetPasswordPage() {
         setError(data.detail || "خطا در ثبت رمز.");
       } else {
         showToast("success", data.detail);
-        // store tokens if returned
+        // store tokens via AuthProvider (persist by default)
         if (data.access && data.refresh) {
           try {
-            localStorage.setItem("access", data.access);
-            localStorage.setItem("refresh", data.refresh);
+            login(email, { access: data.access, refresh: data.refresh }, true);
           } catch (e) {}
         }
         // give toast a moment to display before navigating
-        setTimeout(() => navigate("/", { replace: true }), 700);
+        setTimeout(() => navigate("/login", { replace: true }), 700);
       }
     } catch (err) {
       setError("خطا در ارتباط با سرور.");
@@ -81,7 +82,7 @@ export default function SetPasswordPage() {
               <button
                 type="button"
                 onClick={() => setShowPasswords((s) => !s)}
-                className="text-sm text-gray-600 hover:text-gray-900"
+                className="ml-6 px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 transition-colors"
                 aria-label={showPasswords ? 'Hide passwords' : 'Show passwords'}
               >
                 {showPasswords ? 'مخفی' : 'نمایش'}

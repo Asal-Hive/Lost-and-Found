@@ -45,10 +45,24 @@ export default function ResetOTPPage() {
       return;
     }
     setLoading(true);
-    // TODO: replace with real API call
-    await new Promise((r) => setTimeout(r, 650));
-    setLoading(false);
-    navigate(`/set-new-password?email=${encodeURIComponent(email)}`);
+    try {
+      const res = await fetch('/api/reset-password/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code: otp }),
+      });
+      const data = await res.json();
+      setLoading(false);
+      if (!res.ok) {
+        setError(true);
+        return;
+      }
+      // navigate to set-new-password and include code in query so it can be submitted with new password
+      navigate(`/set-new-password?email=${encodeURIComponent(email)}&code=${encodeURIComponent(otp)}`);
+    } catch (err) {
+      setLoading(false);
+      setError(true);
+    }
   };
 
   return (

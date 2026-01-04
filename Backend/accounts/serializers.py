@@ -49,3 +49,23 @@ class SetPasswordSerializer(serializers.Serializer):
         if pw != pw2:
             raise serializers.ValidationError({'password_confirm': 'رمزهای وارد شده یکسان نیستند.'})
         return attrs
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+    password_confirm = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        pw = attrs.get('password')
+        pw2 = attrs.get('password_confirm')
+        if not pw or len(pw) < 8:
+            raise serializers.ValidationError({'password': 'رمز عبور باید حداقل ۸ کاراکتر باشد.'})
+        if pw != pw2:
+            raise serializers.ValidationError({'password_confirm': 'رمزهای وارد شده یکسان نیستند.'})
+        return attrs

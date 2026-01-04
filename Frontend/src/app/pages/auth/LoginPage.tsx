@@ -40,8 +40,9 @@ export default function LoginPage() {
       if (!res.ok) {
         setError(data.detail || "اطلاعات ورود نامعتبر.");
       } else {
-        // simple local login for now; token storage can be added later
-        login(email);
+        // use AuthProvider to persist user and tokens
+        const tokens = { access: data.access, refresh: data.refresh };
+        login(email, tokens, remember);
         showToast("success", "ورود با موفقیت انجام شد!");
         const redirectTo = location?.state?.from?.pathname ?? "/";
         setTimeout(() => navigate(redirectTo, { replace: true }), 700);
@@ -86,7 +87,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword((s) => !s)}
-                className="text-sm text-gray-600 hover:text-gray-900"
+                className="ml-6 px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 transition-colors"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? 'مخفی' : 'نمایش'}

@@ -1,12 +1,21 @@
-import os
 from pathlib import Path
 from datetime import timedelta
+from deployconfigs import DjangoConfigs
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+CODE_ROOT = Path(__file__).parent
+BASE_DIR = CODE_ROOT.parent
 
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'dev-secret')
-DEBUG = True
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+# Initialize configuration with default.conf (committed) and local.conf (gitignored, overrides defaults)
+conf = DjangoConfigs(
+    default_conf_file=CODE_ROOT / 'default.conf',
+    extra_conf_file=BASE_DIR / 'local.conf'
+)
+
+DATA_ROOT = conf.get_path('DATA_ROOT', BASE_DIR / 'data').resolve()
+
+SECRET_KEY = conf.get('SECRET_KEY')
+DEBUG = conf.get_bool('DEBUG', False)
+ALLOWED_HOSTS = conf.get_list('ALLOWED_HOSTS', ['127.0.0.1', 'localhost'])
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -55,15 +64,15 @@ WSGI_APPLICATION = 'server.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': conf.get('DATABASE_ENGINE'),
+        'NAME': BASE_DIR / conf.get('DATABASE_NAME'),
     }
 }
 
 AUTH_PASSWORD_VALIDATORS = []
 
-LANGUAGE_CODE = 'fa'
-TIME_ZONE = 'UTC'
+LANGUAGE_CODE = conf.get('LANGUAGE_CODE', 'fa')
+TIME_ZONE = conf.get('TIME_ZONE', 'UTC')
 USE_I18N = True
 USE_TZ = True
 
@@ -71,22 +80,22 @@ STATIC_URL = '/static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Email: default to console in dev; can be configured by env vars
-if os.environ.get('EMAIL_HOST'):
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = os.environ.get('EMAIL_HOST')
-    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
-    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
-    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
-    EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() in ('1', 'true', 'yes')
-    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'webmaster@localhost')
-else:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Email Configuration
+email_backend = conf.get('EMAIL_BACKEND')
+EMAIL_BACKEND = email_backend
 
-CORS_ALLOWED_ORIGINS = [
+if email_backend != 'django.core.mail.backends.console.EmailBackend':
+    EMAIL_HOST = conf.get('EMAIL_HOST')
+    EMAIL_PORT = conf.get_int('EMAIL_PORT', 587)
+    EMAIL_HOST_USER = conf.get('EMAIL_HOST_USER', '')
+    EMAIL_HOST_PASSWORD = conf.get('EMAIL_HOST_PASSWORD', '')
+    EMAIL_USE_TLS = conf.get_bool('EMAIL_USE_TLS', True)
+    DEFAULT_FROM_EMAIL = conf.get('DEFAULT_FROM_EMAIL')
+
+CORS_ALLOWED_ORIGINS = conf.get_list('CORS_ALLOWED_ORIGINS', [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
-]
+])
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -95,6 +104,6 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=conf.get_int('ACCESS_TOKEN_LIFETIME_MINUTES', 60)),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=conf.get_int('REFRESH_TOKEN_LIFETIME_DAYS', 1)),
 }

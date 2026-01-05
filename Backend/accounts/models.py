@@ -7,6 +7,7 @@ class OTPCode(models.Model):
     PURPOSE_CHOICES = [
         ('activation', 'Activation'),
         ('login', 'Login'),
+        ('reset', 'Reset'),
     ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)

@@ -27,7 +27,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
+    'django_filters',
+    'storages',
     'accounts',
+    'items',
 ]
 
 MIDDLEWARE = [
@@ -119,9 +122,49 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ],
 }
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=conf.get_int('ACCESS_TOKEN_LIFETIME_MINUTES', 60)),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=conf.get_int('REFRESH_TOKEN_LIFETIME_DAYS', 1)),
 }
+
+# S3 Storage Configuration
+KUBIT_S3_ENDPOINT_URL = conf.get('KUBIT_S3_ENDPOINT_URL', 'https://s3.kubit.ir')
+KUBIT_STORAGE_BUCKET_NAME = conf.get('KUBIT_STORAGE_BUCKET_NAME', 'abolfazlsheikhha833-beehive')
+KUBIT_ACCESS_KEY_ID = conf.get('KUBIT_ACCESS_KEY_ID', '')
+KUBIT_SECRET_ACCESS_KEY = conf.get('KUBIT_SECRET_ACCESS_KEY', '')
+KUBIT_S3_REGION_NAME = conf.get('KUBIT_S3_REGION_NAME', 'default')
+KUBIT_S3_FILE_OVERWRITE = conf.get_bool('KUBIT_S3_FILE_OVERWRITE', False)
+KUBIT_DEFAULT_ACL = conf.get('KUBIT_DEFAULT_ACL', 'public-read')
+KUBIT_S3_CUSTOM_DOMAIN = conf.get('KUBIT_S3_CUSTOM_DOMAIN', 's3.kubit.ir/abolfazlsheikhha833-beehive')
+
+# Django 4.2+ STORAGES configuration
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {
+            "access_key": KUBIT_ACCESS_KEY_ID,
+            "secret_key": KUBIT_SECRET_ACCESS_KEY,
+            "bucket_name": KUBIT_STORAGE_BUCKET_NAME,
+            "endpoint_url": KUBIT_S3_ENDPOINT_URL,
+            "region_name": KUBIT_S3_REGION_NAME,
+            "file_overwrite": KUBIT_S3_FILE_OVERWRITE,
+            "default_acl": KUBIT_DEFAULT_ACL,
+            "custom_domain": KUBIT_S3_CUSTOM_DOMAIN,
+            "querystring_auth": False,
+            "object_parameters": {
+                "CacheControl": "max-age=86400",
+            },
+        },
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
+MEDIA_URL = f'https://{KUBIT_S3_CUSTOM_DOMAIN}/'
+

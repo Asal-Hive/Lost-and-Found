@@ -3,6 +3,7 @@ import { itemsApi, ItemDetail, CATEGORY_LABELS } from "../../../services/itemsAp
 import { useAuth } from "../../auth/AuthProvider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { EditItemModal } from "./EditItemModal";
+import { CommentsList } from "./CommentsList";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/Button";
 import { MapPin, Calendar, User, X } from "lucide-react";
@@ -188,6 +189,11 @@ export function ItemDetailModal({ itemId, isOpen, onClose }: ItemDetailModalProp
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Comments Section */}
+            <div className="pt-4 border-t">
+              <CommentsList itemId={item.id} />
             </div>
 
             {/* Actions */}

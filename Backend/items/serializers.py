@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Item, ItemReport
+from .models import Item, ItemReport, Comment, CommentReport
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -67,4 +67,103 @@ class ItemReportSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         if ItemReport.objects.filter(item=item, reporter=user).exists():
             raise serializers.ValidationError('شما قبلاً این آیتم را گزارش کرده‌اید.')
+        return data
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    """Serializer for comments with nested replies"""
+    author_email = serializers.EmailField(source='author.email', read_only=True)
+    author_name = serializers.CharField(source='author.username', read_only=True)
+    replies_count = serializers.IntegerField(source='replies.count', read_only=True)
+    replies = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Comment
+        fields = [
+            'id', 'item', 'author', 'author_email', 'author_name',
+            'parent', 'content', 'created_at', 'updated_at',
+            'report_count', 'is_active', 'replies_count', 'replies'
+        ]
+        read_only_fields = [
+            'id', 'author', 'author_email', 'author_name',
+            'created_at', 'updated_at', 'report_count', 'is_active',
+            'replies_count', 'replies'
+        ]
+    
+    def get_replies(self, obj):
+        """Get active replies to this comment (without nested replies to avoid recursion)"""
+        replies = obj.replies.filter(is_active=True).order_by('created_at')
+        # Use a simpler serializer for replies to avoid infinite recursion
+        return [
+            {
+                'id': reply.id,
+                'item': reply.item.id,
+                'author': reply.author.id,
+                'author_email': reply.author.email,
+                'author_name': reply.author.username,
+                'parent': reply.parent.id if reply.parent else None,
+                'content': reply.content,
+                'created_at': reply.created_at.isoformat(),
+                'updated_at': reply.updated_at.isoformat(),
+                'report_count': reply.report_count,
+                'is_active': reply.is_active,
+                'replies_count': 0,
+                'replies': []  # Replies don't have nested replies
+            }
+            for reply in replies
+        ]
+
+
+class CommentCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating comments (without nested replies)"""
+    author_email = serializers.EmailField(source='author.email', read_only=True)
+    author_name = serializers.CharField(source='author.username', read_only=True)
+    
+    class Meta:
+        model = Comment
+        fields = [
+            'id', 'item', 'author', 'author_email', 'author_name',
+            'parent', 'content', 'created_at', 'updated_at',
+            'report_count', 'is_active'
+        ]
+        read_only_fields = [
+            'id', 'author', 'author_email', 'author_name',
+            'created_at', 'updated_at', 'report_count', 'is_active'
+        ]
+    
+    def create(self, validated_data):
+        validated_data['author'] = self.context['request'].user
+        return super().create(validated_data)
+    
+    def validate(self, data):
+        # If parent is set, verify it belongs to the same item
+        parent = data.get('parent')
+        item = data.get('item')
+        if parent and parent.item != item:
+            raise serializers.ValidationError('پاسخ باید به کامنت همان آیتم باشد.')
+        return data
+
+
+class CommentReportSerializer(serializers.ModelSerializer):
+    """Serializer for comment reports"""
+    reporter_email = serializers.EmailField(source='reporter.email', read_only=True)
+    
+    class Meta:
+        model = CommentReport
+        fields = ['id', 'comment', 'reporter', 'reporter_email', 'reason', 'description', 'created_at']
+        read_only_fields = ['id', 'reporter', 'reporter_email', 'created_at']
+    
+    def create(self, validated_data):
+        validated_data['reporter'] = self.context['request'].user
+        return super().create(validated_data)
+    
+    def validate(self, data):
+        # Check if user already reported this comment
+        comment = data.get('comment')
+        user = self.context['request'].user
+        if CommentReport.objects.filter(comment=comment, reporter=user).exists():
+            raise serializers.ValidationError('شما قبلاً این کامنت را گزارش کرده‌اید.')
+        # Don't allow users to report their own comments
+        if comment.author == user:
+            raise serializers.ValidationError('نمی‌توانید کامنت خود را گزارش کنید.')
         return data

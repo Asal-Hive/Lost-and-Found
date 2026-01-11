@@ -69,6 +69,74 @@ class Item(models.Model):
                 raise ValidationError(f'Invalid category: {cat}')
 
 
+class Comment(models.Model):
+    """Comments on items with support for replies"""
+    
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
+    content = models.TextField()
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Moderation
+    report_count = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        verbose_name = 'Comment'
+        verbose_name_plural = 'Comments'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['-created_at']),
+            models.Index(fields=['item', '-created_at']),
+            models.Index(fields=['parent', '-created_at']),
+            models.Index(fields=['is_active']),
+        ]
+    
+    def __str__(self):
+        return f"Comment by {self.author.email} on {self.item.title}"
+    
+    @property
+    def is_reply(self):
+        """Check if this comment is a reply to another comment"""
+        return self.parent is not None
+
+
+class CommentReport(models.Model):
+    """Reports for inappropriate comments"""
+    
+    class Reason(models.TextChoices):
+        INAPPROPRIATE = 'inappropriate', 'Inappropriate Content'
+        SPAM = 'spam', 'Spam'
+        HARASSMENT = 'harassment', 'Harassment'
+        OTHER = 'other', 'Other'
+    
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name='reports')
+    reporter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comment_reports')
+    reason = models.CharField(max_length=20, choices=Reason.choices)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'Comment Report'
+        verbose_name_plural = 'Comment Reports'
+        unique_together = ['comment', 'reporter']
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Report for comment {self.comment.id} by {self.reporter.email}"
+    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.comment.report_count = self.comment.reports.count()
+        if self.comment.report_count >= 5:
+            self.comment.is_active = False
+        self.comment.save()
+
+
 class ItemReport(models.Model):
     """Reports for inappropriate items"""
     

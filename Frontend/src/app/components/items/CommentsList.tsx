@@ -49,8 +49,20 @@ export function CommentsList({ itemId }: CommentsListProps) {
       return;
     }
 
-    const authTokens = JSON.parse(authTokensStr);
-    const token = authTokens.access || "";
+    let token = "";
+    try {
+      const authTokens = JSON.parse(authTokensStr);
+      token = authTokens.access || authTokens.token || "";
+    } catch (e) {
+      console.error("Error parsing auth tokens:", e);
+      alert("خطا در خواندن اطلاعات احراز هویت. لطفاً دوباره وارد شوید.");
+      return;
+    }
+    
+    if (!token) {
+      alert("لطفاً دوباره وارد شوید");
+      return;
+    }
 
     await commentsApi.createComment(
       {
@@ -69,10 +81,25 @@ export function CommentsList({ itemId }: CommentsListProps) {
     if (!user) return;
 
     const authTokensStr = localStorage.getItem("auth_tokens") || sessionStorage.getItem("auth_tokens");
-    if (!authTokensStr) return;
+    if (!authTokensStr) {
+      alert("لطفاً دوباره وارد شوید");
+      return;
+    }
 
-    const authTokens = JSON.parse(authTokensStr);
-    const token = authTokens.access || "";
+    let token = "";
+    try {
+      const authTokens = JSON.parse(authTokensStr);
+      token = authTokens.access || authTokens.token || "";
+    } catch (e) {
+      console.error("Error parsing auth tokens:", e);
+      alert("خطا در خواندن اطلاعات احراز هویت. لطفاً دوباره وارد شوید.");
+      return;
+    }
+    
+    if (!token) {
+      alert("لطفاً دوباره وارد شوید");
+      return;
+    }
 
     await commentsApi.updateComment(commentId, content, token);
     await loadComments();
@@ -84,10 +111,25 @@ export function CommentsList({ itemId }: CommentsListProps) {
     if (!user) return;
 
     const authTokensStr = localStorage.getItem("auth_tokens") || sessionStorage.getItem("auth_tokens");
-    if (!authTokensStr) return;
+    if (!authTokensStr) {
+      alert("لطفاً دوباره وارد شوید");
+      return;
+    }
 
-    const authTokens = JSON.parse(authTokensStr);
-    const token = authTokens.access || "";
+    let token = "";
+    try {
+      const authTokens = JSON.parse(authTokensStr);
+      token = authTokens.access || authTokens.token || "";
+    } catch (e) {
+      console.error("Error parsing auth tokens:", e);
+      alert("خطا در خواندن اطلاعات احراز هویت. لطفاً دوباره وارد شوید.");
+      return;
+    }
+    
+    if (!token) {
+      alert("لطفاً دوباره وارد شوید");
+      return;
+    }
 
     await commentsApi.deleteComment(commentId, token);
     await loadComments();
@@ -120,14 +162,32 @@ export function CommentsList({ itemId }: CommentsListProps) {
       return;
     }
 
-    const authTokens = JSON.parse(authTokensStr);
-    const token = authTokens.access || "";
+    let token = "";
+    try {
+      const authTokens = JSON.parse(authTokensStr);
+      token = authTokens.access || authTokens.token || "";
+    } catch (e) {
+      console.error("Error parsing auth tokens:", e);
+      alert("خطا در خواندن اطلاعات احراز هویت. لطفاً دوباره وارد شوید.");
+      return;
+    }
+    
+    if (!token) {
+      alert("لطفاً دوباره وارد شوید");
+      return;
+    }
 
     try {
       await commentsApi.reportComment(commentId, { reason: mappedReason }, token);
       alert("نظر با موفقیت گزارش شد. در صورت دریافت ۵ گزارش، نظر به طور خودکار حذف می‌شود.");
     } catch (err: any) {
-      alert(err.message || "خطا در گزارش نظر");
+      console.error("Error reporting comment:", err);
+      const errorMessage = err.message || "خطا در گزارش نظر";
+      if (errorMessage.includes("توکن") || errorMessage.includes("token") || errorMessage.includes("authenticated")) {
+        alert("توکن شما منقضی شده است. لطفاً دوباره وارد شوید.");
+      } else {
+        alert(errorMessage);
+      }
     }
   };
 

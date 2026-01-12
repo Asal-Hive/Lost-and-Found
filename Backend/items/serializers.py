@@ -151,15 +151,18 @@ class CommentReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = CommentReport
         fields = ['id', 'comment', 'reporter', 'reporter_email', 'reason', 'description', 'created_at']
-        read_only_fields = ['id', 'reporter', 'reporter_email', 'created_at']
+        read_only_fields = ['id', 'comment', 'reporter', 'reporter_email', 'created_at']
     
     def create(self, validated_data):
         validated_data['reporter'] = self.context['request'].user
         return super().create(validated_data)
     
     def validate(self, data):
-        # Check if user already reported this comment
-        comment = data.get('comment')
+        # Get comment from context (set by view) or from data
+        comment = self.context.get('comment') or data.get('comment')
+        if not comment:
+            raise serializers.ValidationError({'comment': 'این فیلد الزامی است.'})
+        
         user = self.context['request'].user
         if CommentReport.objects.filter(comment=comment, reporter=user).exists():
             raise serializers.ValidationError('شما قبلاً این کامنت را گزارش کرده‌اید.')

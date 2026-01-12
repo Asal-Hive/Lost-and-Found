@@ -12,6 +12,7 @@ from .serializers import (
 )
 from .permissions import IsOwnerOrReadOnly, IsCommentAuthor
 from .filters import ItemFilter
+from .models import Item
 
 
 class ItemViewSet(viewsets.ModelViewSet):
@@ -61,7 +62,8 @@ class ItemViewSet(viewsets.ModelViewSet):
         Get current user's items
         GET /api/items/my_items/
         """
-        items = self.queryset.filter(owner=request.user)
+        # Use base queryset without select_related to avoid filter conflicts
+        items = Item.objects.filter(is_active=True, owner=request.user)
         page = self.paginate_queryset(items)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -138,7 +140,7 @@ class CommentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        serializer = CommentReportSerializer(data=request.data, context={'request': request})
+        serializer = CommentReportSerializer(data=request.data, context={'request': request, 'comment': comment})
         serializer.is_valid(raise_exception=True)
         serializer.save(comment=comment)
         

@@ -11,6 +11,7 @@ from .serializers import (
     CommentReportSerializer
 )
 from .permissions import IsOwnerOrReadOnly, IsCommentAuthor
+from .filters import ItemFilter
 
 
 class ItemViewSet(viewsets.ModelViewSet):
@@ -24,7 +25,7 @@ class ItemViewSet(viewsets.ModelViewSet):
     queryset = Item.objects.filter(is_active=True).select_related('owner')
     permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['status']
+    filterset_class = ItemFilter
     search_fields = ['title', 'description', 'location_name']
     ordering_fields = ['created_at', 'updated_at']
     ordering = ['-created_at']

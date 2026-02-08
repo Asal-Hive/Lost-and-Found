@@ -1,0 +1,58 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to VM
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USERNAME }}
+        key: ${{ secrets.VM_SSH_KEY }}
+        port: 22
+        script: |
+          cd /home/ubuntu/lost-and-found/Lost-and-Found
+          
+          # Pull latest changes
+          git pull origin main
+          
+          # Update backend
+          cd Backend
+          source venv/bin/activate
+          pip install -r requirements.txt
+          python manage.py migrate
+          python manage.py collectstatic --noinput
+          deactivate
+          
+          # Build frontend
+          cd ../Frontend
+          
+          npm install
+          
+          # Remove old dist folder
+          rm -rf dist
+          
+          # Build with production environment
+          npm run build
+          
+          # Fix permissions
+          cd ..
+          sudo chown -R ubuntu:www-data .
+          sudo chmod -R 755 Frontend/dist/
+          
+          # Restart services
+          sudo systemctl restart beehive
+          sudo systemctl restart nginx
+          
+          echo "✅ Deployment completed successfully!"

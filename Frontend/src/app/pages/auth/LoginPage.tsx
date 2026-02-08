@@ -7,6 +7,7 @@ import { Checkbox } from "../../components/ui/Checkbox";
 import { Link as UILink } from "../../components/ui/Link";
 import { useAuth } from "../../auth/AuthProvider";
 import { useToast } from "./_useToast";
+import { API_URL } from "../../../config/api";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -29,14 +31,28 @@ export default function LoginPage() {
     }
 
     setLoading(true);
-    // TODO: replace with real API call
-    await new Promise((r) => setTimeout(r, 650));
-    setLoading(false);
-
-    login(email);
-    showToast("success", "ورود با موفقیت انجام شد!");
-    const redirectTo = location?.state?.from?.pathname ?? "/";
-    navigate(redirectTo, { replace: true });
+    try {
+      const res = await fetch(`${API_URL}/token/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.detail || "اطلاعات ورود نامعتبر.");
+      } else {
+        // use AuthProvider to persist user and tokens
+        const tokens = { access: data.access, refresh: data.refresh };
+        login(email, tokens, remember);
+        showToast("success", "ورود با موفقیت انجام شد!");
+        const redirectTo = location?.state?.from?.pathname ?? "/";
+        setTimeout(() => navigate(redirectTo, { replace: true }), 700);
+      }
+    } catch (err) {
+      setError("خطا در ارتباط با سرور.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -64,10 +80,20 @@ export default function LoginPage() {
 
           <Input
             label="رمز عبور"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             placeholder="********"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            trailing={
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                className="ml-6 px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? 'مخفی' : 'نمایش'}
+              </button>
+            }
           />
 
           <div className="flex items-center justify-between">

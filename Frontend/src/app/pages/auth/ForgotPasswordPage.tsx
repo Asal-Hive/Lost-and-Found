@@ -21,11 +21,31 @@ export default function ForgotPasswordPage() {
       return;
     }
     setLoading(true);
-    // TODO: replace with real API call (POST /api/auth/forgot-password/)
-    await new Promise((r) => setTimeout(r, 650));
-    setLoading(false);
-    showToast("info", "کد بازیابی به ایمیل شما ارسال شد.");
-    navigate(`/reset-otp?email=${encodeURIComponent(email)}`);
+    try {
+      const res = await fetch('/api/forgot-password/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      setLoading(false);
+      if (!res.ok) {
+        // show first error message if available
+        if (data && data.email && Array.isArray(data.email)) {
+          setError(data.email[0]);
+        } else if (data && data.detail) {
+          setError(data.detail);
+        } else {
+          setError('خطا در ارسال درخواست. دوباره تلاش کنید.');
+        }
+        return;
+      }
+      showToast('info', data.detail || 'کد بازیابی به ایمیل شما ارسال شد.');
+      navigate(`/reset-otp?email=${encodeURIComponent(email)}`);
+    } catch (err) {
+      setLoading(false);
+      setError('خطا در برقراری ارتباط با سرور.');
+    }
   };
 
   return (

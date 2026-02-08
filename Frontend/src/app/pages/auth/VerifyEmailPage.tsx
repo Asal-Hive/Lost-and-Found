@@ -5,6 +5,7 @@ import { OTPInput } from "../../components/ui/OTPInput";
 import { Button } from "../../components/ui/Button";
 import { Link as UILink } from "../../components/ui/Link";
 import { useToast } from "./_useToast";
+import { API_URL } from "../../../config/api";
 
 export default function VerifyEmailPage() {
   const navigate = useNavigate();
@@ -33,8 +34,17 @@ export default function VerifyEmailPage() {
   const resend = async () => {
     setTimer(45);
     setError(false);
-    // TODO: API resend
-    showToast("info", "کد جدید ارسال شد.");
+    try {
+      const res = await fetch(`${API_URL}/register/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      showToast(res.ok ? "info" : "error", data.detail || "خطا در ارسال مجدد کد.");
+    } catch (e) {
+      showToast("error", "خطا در ارتباط با سرور.");
+    }
   };
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -45,11 +55,27 @@ export default function VerifyEmailPage() {
       return;
     }
     setLoading(true);
-    // TODO: replace with real API call (POST /api/auth/verify-email/)
-    await new Promise((r) => setTimeout(r, 650));
-    setLoading(false);
-    showToast("success", "ایمیل تایید شد.");
-    navigate(`/set-password?email=${encodeURIComponent(email)}`);
+    try {
+      const payload: any = { email, code: otp };
+      const res = await fetch(`${API_URL}/verify-otp/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(true);
+        showToast("error", data.detail || "کد نادرست است.");
+      } else {
+        showToast("success", data.detail || "ایمیل تایید شد.");
+        // Continue to set-password page to collect a required password
+        navigate(`/set-password?email=${encodeURIComponent(email)}`);
+      }
+    } catch (err) {
+      showToast("error", "خطا در ارتباط با سرور.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -78,6 +104,8 @@ export default function VerifyEmailPage() {
               <p className="mt-4 text-red-500 text-sm text-center">کد نادرست است. دوباره تلاش کنید.</p>
             )}
           </div>
+
+          {/* password is collected on the separate SetPassword page */}
 
           <div className="text-center">
             {!canResend ? (

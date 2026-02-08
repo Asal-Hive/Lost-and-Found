@@ -4,15 +4,19 @@ import AuthShell from "./_AuthShell";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { useToast } from "./_useToast";
+import { useAuth } from "../../auth/AuthProvider";
+import { API_URL } from "../../../config/api";
 
 export default function SetPasswordPage() {
   const navigate = useNavigate();
   const { showToast, ToastStack } = useToast();
+  const { login } = useAuth();
   const [params] = useSearchParams();
   const email = useMemo(() => params.get("email") ?? "", [params]);
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPasswords, setShowPasswords] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
@@ -29,12 +33,31 @@ export default function SetPasswordPage() {
     }
 
     setLoading(true);
-    // TODO: replace with real API call (POST /api/auth/set-password/)
-    await new Promise((r) => setTimeout(r, 650));
-    setLoading(false);
-
-    showToast("success", "حساب ساخته شد. حالا وارد شوید.");
-    navigate("/login", { replace: true });
+    try {
+      const res = await fetch(`${API_URL}/set-password/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, password_confirm: confirm }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.detail || "خطا در ثبت رمز.");
+      } else {
+        showToast("success", data.detail);
+        // store tokens via AuthProvider (persist by default)
+        if (data.access && data.refresh) {
+          try {
+            login(email, { access: data.access, refresh: data.refresh }, true);
+          } catch (e) {}
+        }
+        // give toast a moment to display before navigating
+        setTimeout(() => navigate("/login", { replace: true }), 700);
+      }
+    } catch (err) {
+      setError("خطا در ارتباط با سرور.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -51,16 +74,26 @@ export default function SetPasswordPage() {
         <form className="space-y-6" onSubmit={onSubmit}>
           <Input
             label="رمز عبور"
-            type="password"
+            type={showPasswords ? 'text' : 'password'}
             placeholder="حداقل ۸ کاراکتر"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             error={error}
+            trailing={
+              <button
+                type="button"
+                onClick={() => setShowPasswords((s) => !s)}
+                className="ml-6 px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                aria-label={showPasswords ? 'Hide passwords' : 'Show passwords'}
+              >
+                {showPasswords ? 'مخفی' : 'نمایش'}
+              </button>
+            }
           />
 
           <Input
             label="تکرار رمز عبور"
-            type="password"
+            type={showPasswords ? 'text' : 'password'}
             placeholder="********"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}

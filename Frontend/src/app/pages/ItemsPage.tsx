@@ -5,7 +5,7 @@ import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/Button";
-import { Search, MapPin, Calendar, Plus } from "lucide-react";
+import { Search, MapPin, Calendar, Plus, X, Filter } from "lucide-react";
 import { ItemDetailModal } from "../components/items/ItemDetailModal";
 import { CreateItemModal } from "../components/items/CreateItemModal";
 
@@ -16,14 +16,21 @@ export default function ItemsPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'lost' | 'found'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
+  const [locationFilter, setLocationFilter] = useState<string>('');
   const [showMyItems, setShowMyItems] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+  // Debounce search query to avoid too many API calls
   useEffect(() => {
-    loadItems();
-  }, [statusFilter, showMyItems]);
+    const timeoutId = setTimeout(() => {
+      loadItems();
+    }, searchQuery ? 500 : 0); // 500ms delay for search, immediate for other filters
+    
+    return () => clearTimeout(timeoutId);
+  }, [statusFilter, searchQuery, categoryFilter, locationFilter, showMyItems]);
 
   const loadItems = async () => {
     try {
@@ -38,17 +45,42 @@ export default function ItemsPage() {
           const authTokens = JSON.parse(authTokensStr);
           const token = authTokens.access || '';
           data = await itemsApi.getMyItems(token);
-          // Apply status filter to my items
+          // Apply filters to my items (client-side filtering for my items)
           if (statusFilter !== 'all') {
             data = data.filter(item => item.status === statusFilter);
+          }
+          // Apply search filter
+          if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            data = data.filter(item => 
+              item.title.toLowerCase().includes(query) ||
+              item.description.toLowerCase().includes(query) ||
+              item.location_name.toLowerCase().includes(query)
+            );
+          }
+          // Apply category filter
+          if (categoryFilter) {
+            data = data.filter(item => 
+              item.categories && item.categories.includes(categoryFilter)
+            );
+          }
+          // Apply location filter
+          if (locationFilter) {
+            const location = locationFilter.toLowerCase();
+            data = data.filter(item => 
+              item.location_name.toLowerCase().includes(location)
+            );
           }
         } else {
           data = [];
         }
       } else {
-        // Get all items
+        // Get all items with filters
         data = await itemsApi.getItems({
           status: statusFilter === 'all' ? undefined : statusFilter,
+          search: searchQuery || undefined,
+          category: categoryFilter || undefined,
+          location: locationFilter || undefined,
         });
       }
       
@@ -62,15 +94,8 @@ export default function ItemsPage() {
     }
   };
 
-  const filteredItems = items.filter(item => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      item.title.toLowerCase().includes(query) ||
-      item.description.toLowerCase().includes(query) ||
-      item.location_name.toLowerCase().includes(query)
-    );
-  });
+  // No need for client-side filtering anymore - server handles it
+  const filteredItems = items;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -174,16 +199,79 @@ export default function ItemsPage() {
           )}
         </div>
 
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <Input
-            type="text"
-            placeholder="جستجو در عنوان، توضیحات یا مکان..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pr-10 py-3"
-          />
+        {/* Search and Filters */}
+        <div className="space-y-3">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Input
+              type="text"
+              placeholder="جستجو در عنوان، توضیحات و مکان..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pr-10 py-3"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Category Filter */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium text-gray-700 flex items-center gap-1">
+              <Filter className="w-4 h-4" />
+              دسته‌بندی:
+            </span>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">همه دسته‌بندی‌ها</option>
+              {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            {categoryFilter && (
+              <button
+                onClick={() => setCategoryFilter('')}
+                className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+              >
+                <X className="w-3 h-3" />
+                حذف فیلتر
+              </button>
+            )}
+          </div>
+
+          {/* Location Filter */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-700 flex items-center gap-1">
+              <MapPin className="w-4 h-4" />
+              مکان:
+            </span>
+            <Input
+              type="text"
+              placeholder="جستجو بر اساس مکان..."
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+              className="flex-1 max-w-xs py-2"
+            />
+            {locationFilter && (
+              <button
+                onClick={() => setLocationFilter('')}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

@@ -52,10 +52,14 @@ export const itemsApi = {
   async getItems(params?: {
     status?: 'lost' | 'found';
     search?: string;
+    category?: string;
+    location?: string;
   }): Promise<Item[]> {
     const queryParams = new URLSearchParams();
     if (params?.status) queryParams.append('status', params.status);
     if (params?.search) queryParams.append('search', params.search);
+    if (params?.category) queryParams.append('category', params.category);
+    if (params?.location) queryParams.append('location', params.location);
     
     const url = `${API_BASE_URL}/items/${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
     const response = await fetch(url);

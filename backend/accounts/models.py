@@ -1,43 +1,24 @@
-from django.db import models
-
-from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
 
-class UserManager(BaseUserManager):
-    def create_user(self, email, password=None):
-        if not email:
-            raise ValueError("Email is required")
+class OTPCode(models.Model):
+    PURPOSE_CHOICES = [
+        ('activation', 'Activation'),
+        ('login', 'Login'),
+        ('reset', 'Reset'),
+    ]
 
-        email = self.normalize_email(email)
-        user = self.model(email=email)
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
-
-
-class User(AbstractBaseUser, PermissionsMixin):
-    email = models.EmailField(unique=True)
-    is_verified = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
-    created_at = models.DateTimeField(default=timezone.now)
-
-    objects = UserManager()
-
-    USERNAME_FIELD = 'email'
-
-    def __str__(self):
-        return self.email
-    
-class OTP(models.Model):
-    email = models.EmailField()
-    otp_hash = models.CharField(max_length=128)
-    expires_at = models.DateTimeField()
-    attempts = models.IntegerField(default=0)
-    verified = models.BooleanField(default=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    code = models.CharField(max_length=10)
+    purpose = models.CharField(max_length=20, choices=PURPOSE_CHOICES, default='activation')
     created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    def is_valid(self):
+        return (not self.is_used) and (self.expires_at >= timezone.now())
 
     def __str__(self):
-        return f"{self.email} - verified={self.verified}"
+        return f"OTP({self.user.email}, {self.code}, {self.purpose})"

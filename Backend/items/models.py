@@ -169,4 +169,28 @@ class ItemReport(models.Model):
             self.item.is_active = False
         self.item.save()
 
-
+class Notification(models.Model):
+    """Notifications for users"""
+    
+    class Type(models.TextChoices):
+        COMMENT = 'comment', 'New Comment'
+        REPLY = 'reply', 'Reply to Comment'
+        ITEM_MATCH = 'item_match', 'Matching Item Found'
+    
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='sent_notifications')
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, null=True, blank=True)
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, null=True, blank=True)
+    notification_type = models.CharField(max_length=20, choices=Type.choices)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['recipient', 'is_read', '-created_at']),
+        ]
+    
+    def __str__(self):
+        return f"Notification for {self.recipient.email}: {self.message[:50]}"

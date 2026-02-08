@@ -2,6 +2,7 @@ import React from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import logo from "../../assets/44ef5f3c1c67b3d1d525bbc9fa0e74b73389b94f.png";
+import NotificationBell from '../components/ui/NotificationBell';
 
 function NavItem({ to, children }: { to: string; children: React.ReactNode }) {
   return (
@@ -51,6 +52,7 @@ export default function PublicLayout() {
 
               {isAuthenticated ? (
                 <div className="flex items-center gap-2">
+                  <NotificationBell />
                   <div className="text-sm text-slate-200 hidden sm:block">
                     {user?.email}
                   </div>

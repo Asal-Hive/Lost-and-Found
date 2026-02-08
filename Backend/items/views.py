@@ -13,7 +13,10 @@ from .serializers import (
 from .permissions import IsOwnerOrReadOnly, IsCommentAuthor
 from .filters import ItemFilter
 from .models import Item
-
+from .models import Notification
+from .serializers import NotificationSerializer
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
 
 class ItemViewSet(viewsets.ModelViewSet):
     """
@@ -87,7 +90,44 @@ class ItemViewSet(viewsets.ModelViewSet):
         
         serializer = CommentSerializer(comments, many=True, context={'request': request})
         return Response(serializer.data)
-
+    
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def notifications(self, request):
+        """
+        Get current user's notifications
+        GET /api/items/notifications/
+        """
+        notifications = Notification.objects.filter(
+            recipient=request.user
+        ).select_related('sender', 'item', 'comment').order_by('-created_at')
+        
+        # Mark as read when fetching
+        unread_ids = list(notifications.filter(is_read=False).values_list('id', flat=True))
+        if unread_ids:
+            Notification.objects.filter(id__in=unread_ids).update(is_read=True)
+        
+        serializer = NotificationSerializer(notifications, many=True)
+        return Response({
+            'count': notifications.count(),
+            'unread_count': len(unread_ids),
+            'notifications': serializer.data
+        })
+    
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def mark_all_read(self, request):
+        """
+        Mark all notifications as read
+        POST /api/items/mark_all_read/
+        """
+        updated = Notification.objects.filter(
+            recipient=request.user,
+            is_read=False
+        ).update(is_read=True)
+        
+        return Response({
+            'marked_read': updated,
+            'message': f'{updated} notifications marked as read'
+        })
 
 class CommentViewSet(viewsets.ModelViewSet):
     """

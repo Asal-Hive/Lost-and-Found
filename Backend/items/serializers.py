@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Item, ItemReport, Comment, CommentReport
+from .models import Item, ItemReport, Comment, CommentReport, Notification
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -170,3 +170,30 @@ class CommentReportSerializer(serializers.ModelSerializer):
         if comment.author == user:
             raise serializers.ValidationError('نمی‌توانید کامنت خود را گزارش کنید.')
         return data
+class NotificationSerializer(serializers.ModelSerializer):
+    """Serializer for notifications"""
+    sender_email = serializers.EmailField(source='sender.email', read_only=True)
+    sender_name = serializers.CharField(source='sender.username', read_only=True)
+    item_title = serializers.CharField(source='item.title', read_only=True)
+    comment_preview = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Notification
+        fields = [
+            'id', 'recipient', 'sender', 'sender_email', 'sender_name',
+            'item', 'item_title', 'comment', 'notification_type',
+            'message', 'is_read', 'created_at', 'comment_preview'
+        ]
+        read_only_fields = [
+            'id', 'recipient', 'sender', 'sender_email', 'sender_name',
+            'item', 'item_title', 'comment', 'notification_type',
+            'message', 'created_at', 'comment_preview'
+        ]
+    
+    def get_comment_preview(self, obj):
+        if obj.comment and obj.comment.content:
+            preview = obj.comment.content[:50]
+            if len(obj.comment.content) > 50:
+                preview += "..."
+            return preview
+        return None

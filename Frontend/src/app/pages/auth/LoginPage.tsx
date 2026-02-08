@@ -7,6 +7,7 @@ import { Checkbox } from "../../components/ui/Checkbox";
 import { Link as UILink } from "../../components/ui/Link";
 import { useAuth } from "../../auth/AuthProvider";
 import { useToast } from "./_useToast";
+import { API_URL } from "../../../config/api";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/token/", {
+      const res = await fetch(`${API_URL}/token/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

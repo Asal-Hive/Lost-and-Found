@@ -5,6 +5,7 @@ import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Link as UILink } from "../../components/ui/Link";
 import { useToast } from "./_useToast";
+import { API_URL } from "../../../config/api";
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ export default function SignupPage() {
     }
     setLoading(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/register/", {
+      const res = await fetch(`${API_URL}/register/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

@@ -5,6 +5,7 @@ import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { useToast } from "./_useToast";
 import { useAuth } from "../../auth/AuthProvider";
+import { API_URL } from "../../../config/api";
 
 export default function SetPasswordPage() {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ export default function SetPasswordPage() {
 
     setLoading(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/set-password/", {
+      const res = await fetch(`${API_URL}/set-password/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, password_confirm: confirm }),

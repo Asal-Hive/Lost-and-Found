@@ -8,6 +8,8 @@ import { Button } from "../components/ui/Button";
 import { Search, MapPin, Calendar, Plus, X, Filter } from "lucide-react";
 import { ItemDetailModal } from "../components/items/ItemDetailModal";
 import { CreateItemModal } from "../components/items/CreateItemModal";
+import { useSearchParams } from "react-router-dom";
+
 
 export default function ItemsPage() {
   const { isAuthenticated } = useAuth();
@@ -22,6 +24,8 @@ export default function ItemsPage() {
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+
 
   // Debounce search query to avoid too many API calls
   useEffect(() => {
@@ -31,13 +35,27 @@ export default function ItemsPage() {
     
     return () => clearTimeout(timeoutId);
   }, [statusFilter, searchQuery, categoryFilter, locationFilter, showMyItems]);
+  useEffect(() => {
+    const itemIdStr = searchParams.get("itemId");
+    if (!itemIdStr) return;
+
+    const id = Number(itemIdStr);
+    if (!Number.isFinite(id)) return;
+
+    setSelectedItemId(id);
+    setIsModalOpen(true);
+
+    // Optional: remove param after opening (prevents re-opening on refresh)
+    // searchParams.delete("itemId");
+    // setSearchParams(searchParams, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const loadItems = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      let data;
+      let data: any[] | ((prevState: Item[]) => Item[]);
       if (showMyItems && isAuthenticated) {
         // Get user's items
         const authTokensStr = localStorage.getItem('auth_tokens') || sessionStorage.getItem('auth_tokens');

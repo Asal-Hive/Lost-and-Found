@@ -216,7 +216,11 @@ class ChatbotSearchAPIView(APIView):
             s2 = apply_rules(q, doc, s)
             reranked.append((item_id, s2))
         reranked.sort(key=lambda x: x[1], reverse=True)
+
+        MIN_SCORE = 0.3
+        reranked = [(item_id, score) for (item_id, score) in reranked if score >= MIN_SCORE]
         reranked = reranked[:top_k]
+
 
         # Build response (include direct frontend link)
         results = []

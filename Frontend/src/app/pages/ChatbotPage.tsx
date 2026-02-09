@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Input } from "../components/ui/Input";
+import { LabeledInput } from "../components/ui/LabeledInput";
 import { Button } from "../components/ui/Button";
 
 export default function ChatbotPage() {
@@ -24,7 +24,7 @@ export default function ChatbotPage() {
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
+          <LabeledInput
             label="وسیله‌ام گم شده"
             placeholder="مثال: کیف مشکی با زیپ قرمز نزدیک کتابخانه"
             value={query}

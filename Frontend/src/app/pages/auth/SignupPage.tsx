@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthShell from "./_AuthShell";
-import { Input } from "../../components/ui/Input";
+import { LabeledInput } from "../../components/ui/LabeledInput";
 import { Button } from "../../components/ui/Button";
 import { Link as UILink } from "../../components/ui/Link";
 import { useToast } from "./_useToast";
@@ -61,7 +61,7 @@ export default function SignupPage() {
         }
       >
         <form className="space-y-6" onSubmit={onSubmit}>
-          <Input
+          <LabeledInput
             label="ایمیل"
             type="email"
             placeholder="example@university.edu"

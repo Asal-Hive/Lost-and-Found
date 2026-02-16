@@ -42,14 +42,14 @@ export default function ChatbotPage() {
       <div className="mb-6">
         <h2 className="text-3xl font-bold mb-2">چت‌بات پیدا کردن وسایل</h2>
         <p className="text-gray-600">
-          یک توضیح کوتاه درباره وسیله گمشده (فارسی یا انگلیسی) بنویسید تا نتایج مرتبط از میان پست‌ها پیدا شود.
+          یک توضیح کوتاه درباره وسیله ‌پیدا شده یا گمشده (فارسی یا انگلیسی) بنویسید تا نتایج مرتبط از میان پست‌ها پیدا شود.
         </p>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <LabeledInput
-            label="وسیله‌ام گم شده"
+            label="توضیحات خود را وارد کنید:"
             placeholder="مثال: کیف مشکی با زیپ قرمز نزدیک کتابخانه | black wallet near library"
             value={query}
             onChange={(e) => setQuery(e.target.value)}

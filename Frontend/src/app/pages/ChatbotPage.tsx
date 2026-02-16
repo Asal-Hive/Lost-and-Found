@@ -71,13 +71,12 @@ export default function ChatbotPage() {
           </div>
         )}
 
-        {!error && !loading && results.length === 0 && query.trim() && (
+        {!error && !loading && results.length === 0 && query.trim() && !botMessage && (
           <div className="mt-6 bg-gray-50 border border-gray-200 rounded-xl p-4">
-            <p className="text-gray-700">
-              مورد مرتبطی یافت نشد. یک توضیح دقیق‌تر بنویسید (رنگ، مکان، دسته‌بندی...).
-            </p>
+            <p className="text-gray-700">مورد مرتبطی یافت نشد. یک توضیح دقیق‌تر بنویسید (رنگ، مکان، دسته‌بندی...).</p>
           </div>
         )}
+
 
         {results.length > 0 && (
           <div className="mt-6 space-y-3">
@@ -104,9 +103,6 @@ export default function ChatbotPage() {
                   </Link>
                 </div>
 
-                <div className="text-xs text-gray-500">
-                  لینک مستقیم: <span className="font-mono">{r.link}</span>
-                </div>
               </div>
             ))}
           </div>

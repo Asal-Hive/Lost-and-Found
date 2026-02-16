@@ -1,3 +1,4 @@
+from server.settings import conf
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -196,7 +197,7 @@ def _build_index_if_needed() -> TfidfIndex:
 
 class ChatbotSearchAPIView(APIView):
     permission_classes = [AllowAny]
-
+    
     def get(self, request):
         q = (request.query_params.get("q") or "").strip()
         if not q:
@@ -236,7 +237,7 @@ class ChatbotSearchAPIView(APIView):
         # ---- NEW: chatty message from OpenAI (does NOT change results) ----
         api_key = None
         try:
-            api_key = conf.get("OPENAI_API_KEY")  # اگر conf در همین فایل وجود دارد
+            api_key = conf.get("OPENAI_API_KEY") 
         except Exception:
             api_key = None
         api_key = api_key or os.getenv("OPENAI_API_KEY")

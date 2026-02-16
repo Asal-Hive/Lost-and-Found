@@ -52,6 +52,8 @@ def generate_chatty_message_openai(
         )
 
         text = (resp.output_text or "").strip()
+        
         return text if text else _fallback_message(user_query, n_results)
-    except Exception:
+    except Exception as e:
         return _fallback_message(user_query, n_results)
+

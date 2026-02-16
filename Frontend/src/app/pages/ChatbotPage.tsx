@@ -9,6 +9,7 @@ export default function ChatbotPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<ChatbotResult[]>([]);
+  const [botMessage, setBotMessage] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,10 +19,14 @@ export default function ChatbotPage() {
     setLoading(true);
     setError(null);
     setResults([]);
+    setBotMessage("");
 
     try {
-      const r = await searchChatbot(q, 7);
-      setResults(r);
+      // searchChatbot now returns: { query, message, results }
+      const data = await searchChatbot(q, 7);
+
+      setBotMessage(data.message || "");
+      setResults(data.results || []);
     } catch (err) {
       console.error(err);
       setError("خطا در جستجوی چت‌بات. لطفا دوباره تلاش کنید.");
@@ -60,17 +65,23 @@ export default function ChatbotPage() {
           </div>
         )}
 
+        {!error && botMessage && (
+          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <p className="text-blue-800">{botMessage}</p>
+          </div>
+        )}
+
         {!error && !loading && results.length === 0 && query.trim() && (
           <div className="mt-6 bg-gray-50 border border-gray-200 rounded-xl p-4">
-            <p className="text-gray-700">مورد مرتبطی یافت نشد. یک توضیح دقیق‌تر بنویسید (رنگ، مکان، دسته‌بندی...).</p>
+            <p className="text-gray-700">
+              مورد مرتبطی یافت نشد. یک توضیح دقیق‌تر بنویسید (رنگ، مکان، دسته‌بندی...).
+            </p>
           </div>
         )}
 
         {results.length > 0 && (
           <div className="mt-6 space-y-3">
-            <div className="text-sm text-gray-600">
-              {results.length} نتیجه مرتبط پیدا شد:
-            </div>
+            <div className="text-sm text-gray-600">{results.length} نتیجه مرتبط پیدا شد:</div>
 
             {results.map((r) => (
               <div

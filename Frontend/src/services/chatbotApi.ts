@@ -6,15 +6,18 @@ export type ChatbotResult = {
   status: "lost" | "found";
   location_name: string;
   score: number;
-  link: string; // frontend link (e.g. /items?itemId=123)
+  link: string;
 };
 
-export async function searchChatbot(query: string, k = 5): Promise<ChatbotResult[]> {
+export type ChatbotResponse = {
+  query: string;
+  message: string;
+  results: ChatbotResult[];
+};
+
+export async function searchChatbot(query: string, k = 5): Promise<ChatbotResponse> {
   const url = `${API_URL}/chatbot/search/?q=${encodeURIComponent(query)}&k=${k}`;
   const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`Chatbot search failed: ${res.status}`);
-  }
-  const data = await res.json();
-  return (data?.results || []) as ChatbotResult[];
+  if (!res.ok) throw new Error(`Chatbot search failed: ${res.status}`);
+  return (await res.json()) as ChatbotResponse;
 }

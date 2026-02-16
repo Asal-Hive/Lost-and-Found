@@ -17,6 +17,8 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from django.utils import timezone
 from .chatbot_retrieval import TfidfIndex, Doc, apply_rules
+import os
+from .openai_chatty import generate_chatty_message_openai
 
 
 class ItemViewSet(viewsets.ModelViewSet):
@@ -192,14 +194,13 @@ def _build_index_if_needed() -> TfidfIndex:
 
     return _TFIDF_INDEX
 
-
 class ChatbotSearchAPIView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
         q = (request.query_params.get("q") or "").strip()
         if not q:
-            return Response({"query": q, "results": []})
+            return Response({"query": q, "message": "", "results": []})
 
         top_k = int(request.query_params.get("k") or 5)
         top_k = max(1, min(top_k, 20))
@@ -207,7 +208,6 @@ class ChatbotSearchAPIView(APIView):
         idx = _build_index_if_needed()
         raw = idx.search(q, top_k=top_k)
 
-        # Apply small rule boosts and rerank
         reranked = []
         for item_id, s in raw:
             doc = idx.docs.get(item_id)
@@ -221,8 +221,6 @@ class ChatbotSearchAPIView(APIView):
         reranked = [(item_id, score) for (item_id, score) in reranked if score >= MIN_SCORE]
         reranked = reranked[:top_k]
 
-
-        # Build response (include direct frontend link)
         results = []
         for item_id, score in reranked:
             doc = idx.docs[item_id]
@@ -235,5 +233,29 @@ class ChatbotSearchAPIView(APIView):
                 "link": f"/items?itemId={item_id}",
             })
 
-        return Response({"query": q, "results": results})
+        # ---- NEW: chatty message from OpenAI (does NOT change results) ----
+        api_key = None
+        try:
+            api_key = conf.get("OPENAI_API_KEY")  # اگر conf در همین فایل وجود دارد
+        except Exception:
+            api_key = None
+        api_key = api_key or os.getenv("OPENAI_API_KEY")
 
+        message = ""
+        if api_key:
+            message = generate_chatty_message_openai(
+                api_key=api_key,
+                user_query=q,
+                n_results=len(results),
+                model="gpt-4.1-mini",   # سبک‌تر؛ خواستی gpt-5.2 هم می‌تونی
+            )
+        else:
+            # اگر کلید نبود، خود helper fallback می‌دهد ولی اینجا هم خالی نذاریم
+            message = generate_chatty_message_openai(
+                api_key="",
+                user_query=q,
+                n_results=len(results),
+                model="gpt-4.1-mini",
+            )
+
+        return Response({"query": q, "message": message, "results": results})

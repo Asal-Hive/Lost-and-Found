@@ -46,16 +46,14 @@ def generate_chatty_message_openai(
         if fa:
             instructions = (
                 "تو دستیار سامانه گمشده‌ها/پیداشده‌ها هستی. "
-                "فقط نتایج داده‌شده را توضیح بده و خلاصه کن. "
-                "هیچ سوالی نپرس. هیچ درخواست اطلاعات بیشتر نده. "
+                " نتایج داده‌شده را توضیح بده و خلاصه کن. "
                 "در ۱ تا ۲ جمله فارسی طبیعی جواب بده. "
                 "بدون لیست و بدون مارک‌داون."
             )
         else:
             instructions = (
                 "You are an assistant for a campus lost-and-found app. "
-                "Only explain/summarize the provided results. "
-                "Do NOT ask any questions. Do NOT request more details. "
+                "Explain/summarize the provided results. "
                 "Reply in 1–2 natural sentences. "
                 "No markdown, no lists."
             )

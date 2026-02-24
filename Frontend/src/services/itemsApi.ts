@@ -87,8 +87,8 @@ export const itemsApi = {
     formData.append('description', data.description);
     formData.append('status', data.status);
     formData.append('categories', JSON.stringify(data.categories));
-    formData.append('latitude', data.latitude.toString());
-    formData.append('longitude', data.longitude.toString());
+    formData.append('latitude', Number(data.latitude).toFixed(6));
+    formData.append('longitude', Number(data.longitude).toFixed(6));
     formData.append('location_name', data.location_name);
     
     if (data.image) {
@@ -117,8 +117,8 @@ export const itemsApi = {
     if (data.description) formData.append('description', data.description);
     if (data.status) formData.append('status', data.status);
     if (data.categories) formData.append('categories', JSON.stringify(data.categories));
-    if (data.latitude) formData.append('latitude', data.latitude.toString());
-    if (data.longitude) formData.append('longitude', data.longitude.toString());
+    if (data.latitude) formData.append('latitude', Number(data.latitude).toFixed(6));
+    if (data.longitude) formData.append('longitude', Number(data.longitude).toFixed(6));
     if (data.location_name) formData.append('location_name', data.location_name);
     if (data.image) formData.append('image', data.image);
 

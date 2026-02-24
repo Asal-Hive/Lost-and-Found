@@ -5,6 +5,7 @@ import { Button } from "../ui/Button";
 import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
 import { Upload, X } from "lucide-react";
+import { LocationPickerMap } from "../map/LocationPickerMap";
 
 interface EditItemModalProps {
   item: ItemDetail;
@@ -256,19 +257,15 @@ export function EditItemModal({ item, isOpen, onClose, onSuccess }: EditItemModa
             )}
           </div>
 
-          {/* Location */}
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              مکان <span className="text-red-500">*</span>
-            </label>
-            <Input
-              type="text"
-              value={formData.location_name}
-              onChange={(e) => setFormData({ ...formData, location_name: e.target.value })}
-              placeholder="مثال: کتابخانه مرکزی دانشگاه شریف"
-              required
-            />
-          </div>
+          <LocationPickerMap
+            isOpen={isOpen}
+            value={{ lat: formData.latitude, lng: formData.longitude }}
+            onChange={(pos) => setFormData((prev) => ({ ...prev, latitude: pos.lat, longitude: pos.lng }))}
+            height={260}
+          />
+          <p className="text-xs text-gray-500 mt-2">
+            مختصات انتخاب‌شده: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+          </p>
 
           {/* Coordinates */}
           <div className="grid grid-cols-2 gap-4">

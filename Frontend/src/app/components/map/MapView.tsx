@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap, Marker } from 'react-leaflet';
 import { Icon, DivIcon } from 'leaflet';
+import type { LatLngLiteral } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { itemsApi, Item } from '../../../services/itemsApi';
 import { ItemDetailModal } from '../items/ItemDetailModal';
+import { MyLocationControl } from './MyLocationControl';
 
 // Fix for Leaflet default icon issue
 import L from 'leaflet';
@@ -122,6 +124,7 @@ const MapView = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [myPos, setMyPos] = useState<LatLngLiteral | null>(null);
 
   useEffect(() => {
     loadItems();
@@ -164,6 +167,8 @@ const MapView = () => {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <MyLocationControl onLocate={setMyPos} label="مکان فعلی من" />
+        {myPos && <Marker position={myPos} />}
         {!loading && items.length > 0 && (
           <MarkerClusterLayer items={items} onMarkerClick={handleMarkerClick} />
         )}

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, useMap, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap, Marker, useMapEvents } from 'react-leaflet';
 import { Icon, DivIcon } from 'leaflet';
 import type { LatLngLiteral } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -8,6 +8,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { itemsApi, Item } from '../../../services/itemsApi';
 import { ItemDetailModal } from '../items/ItemDetailModal';
 import { MyLocationControl } from './MyLocationControl';
+import { CreateItemModal } from '../items/CreateItemModal';
 
 // Fix for Leaflet default icon issue
 import L from 'leaflet';
@@ -114,6 +115,15 @@ function MarkerClusterLayer({ items, onMarkerClick }: { items: Item[]; onMarkerC
   return null;
 }
 
+function DblClickToCreate({ onPick }: { onPick: (pos: { lat: number; lng: number }) => void }) {
+  useMapEvents({
+    dblclick(e) {
+      onPick({ lat: e.latlng.lat, lng: e.latlng.lng });
+    },
+  });
+  return null;
+}
+
 const MapView = () => {
   // Sharif University of Technology coordinates
   const sharifCenter: [number, number] = [35.7042, 51.3510];
@@ -125,6 +135,13 @@ const MapView = () => {
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [myPos, setMyPos] = useState<LatLngLiteral | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [createPos, setCreatePos] = useState<{ lat: number; lng: number } | null>(null);
+
+  const handleMapDblClick = (pos: { lat: number; lng: number }) => {
+    setCreatePos(pos);
+    setIsCreateOpen(true);
+  };
 
   useEffect(() => {
     loadItems();
@@ -162,11 +179,13 @@ const MapView = () => {
         className="w-full h-full"
         zoomControl={true}
         scrollWheelZoom={true}
+        doubleClickZoom={false}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <DblClickToCreate onPick={handleMapDblClick} />
         <MyLocationControl onLocate={setMyPos} label="مکان فعلی من" />
         {myPos && <Marker position={myPos} />}
         {!loading && items.length > 0 && (
@@ -207,6 +226,16 @@ const MapView = () => {
           </div>
         </div>
       )}
+
+      <CreateItemModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onSuccess={() => {
+          setIsCreateOpen(false);
+          loadItems();
+        }}
+        initialPosition={createPos ?? undefined}
+      />
 
       {/* Item Detail Modal */}
       <ItemDetailModal

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { itemsApi, CreateItemData, CATEGORY_LABELS } from "../../../services/itemsApi";
 import { useAuth } from "../../auth/AuthProvider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
@@ -12,9 +12,10 @@ interface CreateItemModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialPosition?: { lat: number; lng: number };
 }
 
-export function CreateItemModal({ isOpen, onClose, onSuccess }: CreateItemModalProps) {
+export function CreateItemModal({ isOpen, onClose, onSuccess, initialPosition }: CreateItemModalProps) {
   const { isAuthenticated } = useAuth();
   const [formData, setFormData] = useState<CreateItemData>({
     title: '',
@@ -31,6 +32,16 @@ export function CreateItemModal({ isOpen, onClose, onSuccess }: CreateItemModalP
   const [error, setError] = useState<string | null>(null);
 
   const categoryOptions = Object.entries(CATEGORY_LABELS);
+
+  useEffect(() => {
+    if (!isOpen || !initialPosition) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      latitude: Number(initialPosition.lat),
+      longitude: Number(initialPosition.lng),
+    }));
+  }, [isOpen, initialPosition?.lat, initialPosition?.lng]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

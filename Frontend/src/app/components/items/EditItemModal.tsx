@@ -257,6 +257,20 @@ export function EditItemModal({ item, isOpen, onClose, onSuccess }: EditItemModa
             )}
           </div>
 
+          {/* Location */}
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              مکان <span className="text-red-500">*</span>
+            </label>
+            <Input
+              type="text"
+              value={formData.location_name}
+              onChange={(e) => setFormData({ ...formData, location_name: e.target.value })}
+              placeholder="مثال: کتابخانه مرکزی دانشگاه شریف"
+              required
+            />
+          </div>
+
           <LocationPickerMap
             isOpen={isOpen}
             value={{ lat: formData.latitude, lng: formData.longitude }}
@@ -266,30 +280,6 @@ export function EditItemModal({ item, isOpen, onClose, onSuccess }: EditItemModa
           <p className="text-xs text-gray-500 mt-2">
             مختصات انتخاب‌شده: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
           </p>
-
-          {/* Coordinates */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">عرض جغرافیایی</label>
-              <Input
-                type="number"
-                step="any"
-                value={formData.latitude}
-                onChange={(e) => setFormData({ ...formData, latitude: parseFloat(e.target.value) })}
-                placeholder="35.7042"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">طول جغرافیایی</label>
-              <Input
-                type="number"
-                step="any"
-                value={formData.longitude}
-                onChange={(e) => setFormData({ ...formData, longitude: parseFloat(e.target.value) })}
-                placeholder="51.3510"
-              />
-            </div>
-          </div>
 
           {/* Actions */}
           <div className="flex gap-3 pt-4 border-t">

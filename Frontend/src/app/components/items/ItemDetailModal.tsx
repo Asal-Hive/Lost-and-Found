@@ -84,6 +84,22 @@ export function ItemDetailModal({ itemId, isOpen, onClose }: ItemDetailModalProp
     }
   };
 
+  const handleContactOwner = () => {
+    if (!item?.owner_email) {
+      alert("ایمیل صاحب آیتم موجود نیست.");
+      return;
+    }
+
+    const ownerName = (item as any)?.owner_name || "صاحب آیتم";
+    const subject = encodeURIComponent(`در مورد آیتم: ${item.title}`);
+    const body = encodeURIComponent(
+      `سلام ${ownerName} عزیز،\n\nمن این آیتم را در سامانه Lost & Found دیدم و می‌خواستم برای هماهنگی با شما در تماس باشم.\n\nعنوان آیتم: ${item.title}\nمکان: ${item.location_name}\n\nبا تشکر`
+    );
+
+    // opens the user's default email app
+    window.location.href = `mailto:${item.owner_email}?subject=${subject}&body=${body}`;
+  };
+
   const isOwner = user && item && user.email === item.owner_email;
 
   return (
@@ -227,9 +243,7 @@ export function ItemDetailModal({ itemId, isOpen, onClose }: ItemDetailModalProp
               ) : (
                 <Button
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                  onClick={() => {
-                    alert('قابلیت تماس با صاحب آیتم به زودی اضافه می‌شود');
-                  }}
+                  onClick={handleContactOwner}
                 >
                   تماس با صاحب
                 </Button>

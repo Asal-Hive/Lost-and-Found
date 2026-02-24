@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { itemsApi, CreateItemData, CATEGORY_LABELS } from "../../../services/itemsApi";
 import { useAuth } from "../../auth/AuthProvider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
@@ -6,14 +6,16 @@ import { Button } from "../ui/Button";
 import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
 import { Upload, X } from "lucide-react";
+import { LocationPickerMap } from "../map/LocationPickerMap";
 
 interface CreateItemModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialPosition?: { lat: number; lng: number };
 }
 
-export function CreateItemModal({ isOpen, onClose, onSuccess }: CreateItemModalProps) {
+export function CreateItemModal({ isOpen, onClose, onSuccess, initialPosition }: CreateItemModalProps) {
   const { isAuthenticated } = useAuth();
   const [formData, setFormData] = useState<CreateItemData>({
     title: '',
@@ -30,6 +32,16 @@ export function CreateItemModal({ isOpen, onClose, onSuccess }: CreateItemModalP
   const [error, setError] = useState<string | null>(null);
 
   const categoryOptions = Object.entries(CATEGORY_LABELS);
+
+  useEffect(() => {
+    if (!isOpen || !initialPosition) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      latitude: Number(initialPosition.lat),
+      longitude: Number(initialPosition.lng),
+    }));
+  }, [isOpen, initialPosition?.lat, initialPosition?.lng]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -280,29 +292,15 @@ export function CreateItemModal({ isOpen, onClose, onSuccess }: CreateItemModalP
             />
           </div>
 
-          {/* Coordinates */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">عرض جغرافیایی</label>
-              <Input
-                type="number"
-                step="any"
-                value={formData.latitude}
-                onChange={(e) => setFormData({ ...formData, latitude: parseFloat(e.target.value) })}
-                placeholder="35.7042"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">طول جغرافیایی</label>
-              <Input
-                type="number"
-                step="any"
-                value={formData.longitude}
-                onChange={(e) => setFormData({ ...formData, longitude: parseFloat(e.target.value) })}
-                placeholder="51.3510"
-              />
-            </div>
-          </div>
+          <LocationPickerMap
+            isOpen={isOpen}
+            value={{ lat: formData.latitude, lng: formData.longitude }}
+            onChange={(pos) => setFormData((prev) => ({ ...prev, latitude: pos.lat, longitude: pos.lng }))}
+            height={260}
+          />
+          <p className="text-xs text-gray-500 mt-2">
+            مختصات انتخاب‌شده: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+          </p>
 
           {/* Actions */}
           <div className="flex gap-3 pt-4 border-t">

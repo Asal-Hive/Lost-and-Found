@@ -12,4 +12,10 @@ createRoot(document.getElementById("root")!).render(
     </AuthProvider>
   </BrowserRouter>,
 );
-  
+
+// register service worker (offline cache)
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(console.error);
+  });
+}

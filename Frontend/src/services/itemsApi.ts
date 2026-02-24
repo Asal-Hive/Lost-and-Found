@@ -1,7 +1,27 @@
 import { API_URL } from '../config/api';
 
 const API_BASE_URL = API_URL;
+const ITEMS_CACHE_PREFIX = "cached_items_v1:";
 
+function cacheKeyForItems(url: string) {
+  return ITEMS_CACHE_PREFIX + url;
+}
+
+function saveCache(key: string, data: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify({ t: Date.now(), data }));
+  } catch {}
+}
+
+function loadCache<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw).data as T;
+  } catch {
+    return null;
+  }
+}
 export interface Item {
   id: number;
   title: string;
@@ -62,13 +82,26 @@ export const itemsApi = {
     if (params?.location) queryParams.append('location', params.location);
     
     const url = `${API_BASE_URL}/items/${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch items');
+
+
+    const key = cacheKeyForItems(url);
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to fetch items");
+      const data = await response.json();
+
+      // cache latest successful data
+      saveCache(key, data);
+      return data;
+    } catch (e) {
+      // offline fallback
+      const cached = loadCache<Item[]>(key);
+      if (cached) return cached;
+      throw e;
     }
-    
-    return response.json();
+
+
   },
 
   async getItem(id: number): Promise<ItemDetail> {

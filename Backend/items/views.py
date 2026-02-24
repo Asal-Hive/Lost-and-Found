@@ -1,3 +1,4 @@
+from server.settings import conf
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -13,6 +14,12 @@ from .serializers import (
 from .permissions import IsOwnerOrReadOnly, IsCommentAuthor
 from .filters import ItemFilter
 from .models import Item
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
+from django.utils import timezone
+from .chatbot_retrieval import TfidfIndex, Doc, apply_rules
+import os
+from .openai_chatty import generate_chatty_message_openai
 
 
 class ItemViewSet(viewsets.ModelViewSet):
@@ -147,4 +154,107 @@ class CommentViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+# ---- Chatbot TF-IDF Search Endpoint ----
 
+_TFIDF_INDEX: TfidfIndex | None = None
+_TFIDF_LAST_BUILD: timezone.datetime | None = None
+
+
+def _build_index_if_needed() -> TfidfIndex:
+    """
+    Simple in-memory cache. Rebuild if items changed since last build.
+    """
+    global _TFIDF_INDEX, _TFIDF_LAST_BUILD
+
+    latest = Item.objects.filter(is_active=True).order_by("-updated_at").values_list("updated_at", flat=True).first()
+    if latest is None:
+        latest = timezone.now()
+
+    if _TFIDF_INDEX is None or _TFIDF_LAST_BUILD is None or latest > _TFIDF_LAST_BUILD:
+        qs = Item.objects.filter(is_active=True).only(
+            "id", "title", "description", "location_name", "status"
+        )
+
+        docs = []
+        for it in qs:
+            combined = f"{it.title}\n{it.description}\n{it.location_name}"
+            docs.append(
+                Doc(
+                    item_id=it.id,
+                    title=it.title,
+                    status=it.status,
+                    location_name=it.location_name or "",
+                    text=combined,
+                )
+            )
+
+        idx = TfidfIndex()
+        idx.build(docs)
+        _TFIDF_INDEX = idx
+        _TFIDF_LAST_BUILD = latest
+
+    return _TFIDF_INDEX
+
+class ChatbotSearchAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        q = (request.query_params.get("q") or "").strip()
+        if not q:
+            return Response({"query": q, "message": "", "results": []})
+
+        top_k = int(request.query_params.get("k") or 5)
+        top_k = max(1, min(top_k, 20))
+
+        idx = _build_index_if_needed()
+        raw = idx.search(q, top_k=top_k)
+
+        # Apply small rule boosts and rerank
+        reranked = []
+        for item_id, s in raw:
+            doc = idx.docs.get(item_id)
+            if not doc:
+                continue
+            s2 = apply_rules(q, doc, s)
+            reranked.append((item_id, s2))
+
+        reranked.sort(key=lambda x: x[1], reverse=True)
+
+        # Score threshold
+        MIN_SCORE = 0.3
+        reranked = [(item_id, score) for (item_id, score) in reranked if score >= MIN_SCORE]
+        reranked = reranked[:top_k]
+
+        # Build response (include direct frontend link)
+        results = []
+        for item_id, score in reranked:
+            doc = idx.docs[item_id]
+            results.append({
+                "id": item_id,
+                "title": doc.title,
+                "status": doc.status,
+                "location_name": doc.location_name,
+                "score": round(float(score), 4),
+                "link": f"/items?itemId={item_id}",
+            })
+
+        # ---- OpenAI chatty message (model sees ONLY top 3 results) ----
+        # Prefer conf if available; fallback to env (safe)
+        api_key = ""
+        try:
+            api_key = (conf.get("OPENAI_API_KEY") or "").strip()  # conf comes from server.settings in your project
+        except Exception:
+            api_key = ""
+        if not api_key:
+            api_key = (os.getenv("OPENAI_API_KEY") or "").strip()
+
+        top3 = results[:3]
+
+        message = generate_chatty_message_openai(
+            api_key=api_key,
+            user_query=q,
+            top_results=top3,          # <-- only these are provided to the model
+            model="gpt-4.1-mini",
+        )
+
+        return Response({"query": q, "message": message, "results": results})

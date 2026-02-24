@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import AuthShell from "./_AuthShell";
-import { Input } from "../../components/ui/Input";
+import { LabeledInput } from "../../components/ui/LabeledInput";
 import { Button } from "../../components/ui/Button";
 import { useToast } from "./_useToast";
 
@@ -66,7 +66,7 @@ export default function SetNewPasswordPage() {
         ) : null}
 
         <form className="space-y-6" onSubmit={onSubmit}>
-          <Input
+          <LabeledInput
             label="رمز جدید"
             type={showPasswords ? 'text' : 'password'}
             placeholder="حداقل ۸ کاراکتر"
@@ -85,7 +85,7 @@ export default function SetNewPasswordPage() {
             }
           />
 
-          <Input
+          <LabeledInput
             label="تکرار رمز جدید"
             type={showPasswords ? 'text' : 'password'}
             placeholder="********"

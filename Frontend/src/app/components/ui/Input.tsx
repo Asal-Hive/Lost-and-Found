@@ -1,68 +1,20 @@
-import * as React from 'react';
+import * as React from "react"
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
-  error?: string;
-  hint?: string;
-  revealable?: boolean;
-  trailing?: React.ReactNode;
-}
+export interface InputProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {}
 
-export function Input({
-  label,
-  error,
-  hint,
-  className = '',
-  id,
-  revealable = false,
-  trailing,
-  ...rest
-}: InputProps) {
-  const inputId = id ?? React.useId();
-  const [reveal, setReveal] = React.useState(false);
-  const isPassword = rest.type === 'password';
-  const inputType = isPassword && revealable ? (reveal ? 'text' : 'password') : rest.type;
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type, ...props }, ref) => {
+    return (
+      <input
+        type={type}
+        className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className || ''}`}
+        ref={ref}
+        {...props}
+      />
+    )
+  }
+)
+Input.displayName = "Input"
 
-  return (
-    <div className="space-y-2">
-      {label && (
-        <label htmlFor={inputId} className="block text-sm font-medium text-gray-700">
-          {label}
-        </label>
-      )}
-
-      <div className="flex items-center">
-        <input
-          id={inputId}
-          className={`flex-1 rounded-lg border-2 px-4 py-3 text-base outline-none transition-all duration-200 placeholder:text-gray-400 ${
-            error
-              ? 'border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-50'
-              : 'border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-50'
-          } ${className}`}
-          {...rest}
-          type={inputType}
-        />
-        {trailing ? (
-          <div className="ml-2">{trailing}</div>
-        ) : (
-          isPassword && revealable && (
-            <button
-              type="button"
-              onClick={() => setReveal((s) => !s)}
-              className="ml-6 px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 transition-colors"
-              aria-label={reveal ? 'Hide password' : 'Show password'}
-            >
-              {reveal ? 'مخفی' : 'نمایش'}
-            </button>
-          )
-        )}
-      </div>
-
-      {error ? (
-        <p className="text-sm text-red-600">{error}</p>
-      ) : hint ? (
-        <p className="text-sm text-gray-500">{hint}</p>
-      ) : null}
-    </div>
-  );
-}
+export { Input }

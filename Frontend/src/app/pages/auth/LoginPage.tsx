@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AuthShell from "./_AuthShell";
-import { Input } from "../../components/ui/Input";
+import { LabeledInput } from "../../components/ui/LabeledInput";
 import { Button } from "../../components/ui/Button";
 import { Checkbox } from "../../components/ui/Checkbox";
 import { Link as UILink } from "../../components/ui/Link";
@@ -69,7 +69,7 @@ export default function LoginPage() {
         }
       >
         <form className="space-y-6" onSubmit={onSubmit}>
-          <Input
+          <LabeledInput
             label="ایمیل"
             type="email"
             placeholder="example@university.edu"
@@ -78,7 +78,7 @@ export default function LoginPage() {
             error={error}
           />
 
-          <Input
+          <LabeledInput
             label="رمز عبور"
             type={showPassword ? 'text' : 'password'}
             placeholder="********"

@@ -1,5 +1,6 @@
 # Sensitive configuration files
 local.conf
+.env
 
 # IDE
 .vscode/
@@ -14,3 +15,7 @@ venv/
 env/
 ENV/
 .venv/
+
+# Docker
+docker-compose.override.yml
+

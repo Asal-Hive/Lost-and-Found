@@ -89,6 +89,59 @@ This project consists of a Django backend and React/TypeScript frontend.
 - Frontend: http://localhost:5173
 - Django Admin: http://localhost:8000/admin
 
+## Docker Deployment
+
+### First-time Setup on Server
+
+1. Install Docker and Docker Compose on your server:
+```bash
+# Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker ubuntu
+
+# Install Docker Compose
+sudo apt-get update
+sudo apt-get install docker-compose-plugin
+```
+
+2. Update nginx config on server:
+```bash
+sudo cp nginx-server.conf /etc/nginx/sites-enabled/beehive
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+3. Stop old systemd service:
+```bash
+sudo systemctl stop beehive
+sudo systemctl disable beehive
+```
+
+4. Start Docker containers:
+```bash
+docker-compose up -d --build
+```
+
+### Regular Usage
+
+```bash
+# Start both frontend and backend
+docker-compose up -d --build
+
+# View logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
+```
+
+Application will be available at:
+- Frontend: http://localhost
+- Backend: http://localhost:8000
+
+GitHub Actions will automatically deploy when you push to main.
+
 ## Environment Variables
 
 ### Backend

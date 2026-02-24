@@ -27,32 +27,9 @@ jobs:
           # Pull latest changes
           git pull origin main
           
-          # Update backend
-          cd Backend
-          source venv/bin/activate
-          pip install -r requirements.txt
-          python manage.py migrate
-          python manage.py collectstatic --noinput
-          deactivate
-          
-          # Build frontend
-          cd ../Frontend
-          
-          npm install
-          
-          # Remove old dist folder
-          rm -rf dist
-          
-          # Build with production environment
-          npm run build
-          
-          # Fix permissions
-          cd ..
-          sudo chown -R ubuntu:www-data .
-          sudo chmod -R 755 Frontend/dist/
-          
-          # Restart services
-          sudo systemctl restart beehive
-          sudo systemctl restart nginx
+          # Build and start Docker containers
+          docker-compose down
+          docker-compose up -d --build
+          docker image prune -f
           
           echo "✅ Deployment completed successfully!"

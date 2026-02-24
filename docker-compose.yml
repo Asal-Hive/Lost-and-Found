@@ -11,6 +11,7 @@ services:
       - ./Backend/data:/app/data
       - ./Backend/staticfiles:/app/staticfiles
       - ./Backend/local.conf:/app/local.conf:ro
+      - ./Backend/db.sqlite3:/app/db.sqlite3
     networks:
       - app-network
 

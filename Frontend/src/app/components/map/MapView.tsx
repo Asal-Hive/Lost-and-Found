@@ -5,10 +5,12 @@ import type { LatLngLiteral } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
-import { itemsApi, Item } from '../../../services/itemsApi';
+import { itemsApi, Item, CATEGORY_LABELS } from '../../../services/itemsApi';
 import { ItemDetailModal } from '../items/ItemDetailModal';
 import { MyLocationControl } from './MyLocationControl';
 import { CreateItemModal } from '../items/CreateItemModal';
+import { Input } from '../ui/input';
+import { Search, MapPin, Filter, X } from 'lucide-react';
 
 // Fix for Leaflet default icon issue
 import L from 'leaflet';
@@ -137,22 +139,51 @@ const MapView = () => {
   const [myPos, setMyPos] = useState<LatLngLiteral | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createPos, setCreatePos] = useState<{ lat: number; lng: number } | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'lost' | 'found'>('all');
+  const [titleFilter, setTitleFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>(''); // tag/category
+  const [locationFilter, setLocationFilter] = useState('');
 
   const handleMapDblClick = (pos: { lat: number; lng: number }) => {
     setCreatePos(pos);
     setIsCreateOpen(true);
   };
 
+  const resetFilters = () => {
+    setStatusFilter('all');
+    setTitleFilter('');
+    setCategoryFilter('');
+    setLocationFilter('');
+  };
+
   useEffect(() => {
-    loadItems();
-  }, []);
+    const t = setTimeout(() => {
+      loadItems();
+    }, titleFilter ? 500 : 0); // debounce only when typing title
+
+    return () => clearTimeout(t);
+  }, [statusFilter, titleFilter, categoryFilter, locationFilter]);
 
   const loadItems = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await itemsApi.getItems();
-      setItems(data.filter(item => item.is_active));
+      const data = await itemsApi.getItems({
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        // backend "search" includes title/description/location; we still apply title-only below
+        search: titleFilter || undefined,
+        category: categoryFilter || undefined,
+        location: locationFilter || undefined,
+      });
+      let out = data.filter((it) => it.is_active);
+
+      // Title-only filter (so it doesn't match description)
+      const t = titleFilter.trim().toLowerCase();
+      if (t) {
+        out = out.filter((it) => (it.title || '').toLowerCase().includes(t));
+      }
+
+      setItems(out);
     } catch (err) {
       console.error('Error loading items:', err);
       setError('خطا در بارگذاری آیتم‌ها از نقشه');
@@ -193,22 +224,145 @@ const MapView = () => {
         )}
       </MapContainer>
 
-      {/* Loading overlay */}
-      {loading && (
-        <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-3 z-[1000]">
+      {/* Filters (Map) */}
+      <div className="absolute bottom-0 right-0 bg-white/90 backdrop-blur shadow-lg p-3 z-[1000] w-[320px] rounded-xl" dir="rtl">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-sm font-semibold">فیلترها</div>
+
           <div className="flex items-center gap-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-            <span className="text-sm text-gray-700">در حال بارگذاری...</span>
+            {loading && (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
+            )}
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="text-xs text-blue-700 hover:text-blue-900"
+            >
+              پاک کردن
+            </button>
           </div>
         </div>
-      )}
 
-      {/* Error overlay */}
-      {error && (
-        <div className="absolute top-4 left-4 bg-red-50 border border-red-200 rounded-lg shadow-lg p-3 z-[1000]">
-          <span className="text-sm text-red-800">{error}</span>
+        {error && (
+          <div className="mb-2 text-xs bg-red-50 border border-red-200 text-red-800 rounded-md p-2">
+            {error}
+          </div>
+        )}
+
+        {/* Status */}
+        <div className="flex gap-2 flex-wrap mb-2">
+          <button
+            type="button"
+            onClick={() => setStatusFilter('all')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              statusFilter === 'all'
+                ? 'bg-blue-600 text-white shadow'
+                : 'bg-white text-gray-700 border border-gray-300 hover:border-blue-400'
+            }`}
+          >
+            همه
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter('lost')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              statusFilter === 'lost'
+                ? 'bg-red-600 text-white shadow'
+                : 'bg-white text-gray-700 border border-gray-300 hover:border-red-400'
+            }`}
+          >
+            گمشده
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter('found')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              statusFilter === 'found'
+                ? 'bg-green-600 text-white shadow'
+                : 'bg-white text-gray-700 border border-gray-300 hover:border-green-400'
+            }`}
+          >
+            پیدا شده
+          </button>
         </div>
-      )}
+
+        {/* Title */}
+        <div className="relative mb-2">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Input
+            value={titleFilter}
+            onChange={(e) => setTitleFilter(e.target.value)}
+            placeholder="فیلتر بر اساس عنوان..."
+            className="pr-9"
+          />
+          {titleFilter && (
+            <button
+              type="button"
+              onClick={() => setTitleFilter('')}
+              className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Tag/Category */}
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-xs font-medium text-gray-700 flex items-center gap-1">
+            <Filter className="w-4 h-4" />
+            برچسب:
+          </span>
+
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">همه</option>
+            {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+
+          {categoryFilter && (
+            <button
+              type="button"
+              onClick={() => setCategoryFilter('')}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Location */}
+        <div className="relative">
+          <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Input
+            value={locationFilter}
+            onChange={(e) => setLocationFilter(e.target.value)}
+            placeholder="فیلتر بر اساس مکان..."
+            className="pr-9"
+          />
+          {locationFilter && (
+            <button
+              type="button"
+              onClick={() => setLocationFilter('')}
+              className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        <div className="mt-2 text-xs text-gray-600">
+          {items.length} مورد نمایش داده می‌شود
+        </div>
+      </div>
 
       {/* Legend */}
       {!loading && items.length > 0 && (

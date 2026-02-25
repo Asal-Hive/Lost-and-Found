@@ -69,22 +69,3 @@ class OTPCodeModelTest(TestCase):
             expires_at=timezone.now() + timedelta(minutes=5)
         )
         self.assertEqual(otp.purpose, 'activation')
-    
-    # def test_otp_ordering(self):
-    #     """Test OTP codes are ordered by created_at descending"""
-    #     # Create second OTP after a small delay
-    #     import time
-    #     time.sleep(0.01)  # Small delay to ensure different created_at
-        
-    #     otp2 = OTPCode.objects.create(
-    #         user=self.user,
-    #         code='789012',
-    #         purpose='reset',
-    #         expires_at=timezone.now() + timedelta(minutes=5)
-    #     )
-        
-    #     # Get the latest OTP (should be otp2)
-    #     latest = OTPCode.objects.first()
-    #     self.assertEqual(latest.id, otp2.id)  # Compare by id instead of object
-    #     self.assertEqual(latest.code, '789012')
-    #     self.assertEqual(latest.purpose, 'reset')

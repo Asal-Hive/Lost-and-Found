@@ -367,19 +367,7 @@ class TokenObtainPairSerializerTest(TestCase):
             password='testpass123',
             is_active=True
         )
-    
-    # def test_login_with_email(self):
-    #     """Test login with email instead of username"""
-    #     data = {
-    #         'email': 'test@example.com',
-    #         'password': 'testpass123'
-    #     }
-    #     serializer = TokenObtainPairSerializer(data=data)
-        
-    #     # The serializer requires username field, so it should be invalid
-    #     # unless we're testing through the view which transforms email to username
-    #     self.assertFalse(serializer.is_valid())
-    #     # This is expected - the actual transformation happens in the view
+
     
     def test_login_missing_credentials(self):
         """Test login with missing credentials"""
